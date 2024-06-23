@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Annotation</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f5f7;
+            color: #1d1d1f;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 {
+            font-weight: 500;
+            margin-bottom: 40px;
+        }
+        #upload-label {
+            background-color: #0071e3;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 6px;
+            cursor: pointer;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        #audio-controls button {
+            background-color: #0071e3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        #audio-controls button:disabled {
+            background-color: #c7c7cc;
+            cursor: not-allowed;
+        }
+        #transcription {
+            width: 80%;
+            height: 100px;
+            padding: 10px;
+            border: 1px solid #d1d1d6;
+            border-radius: 6px;
+            font-size: 16px;
+            margin-top: 5px;
+        }
+        #file-count, #audio-info {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        audio {
+            margin-top: 20px;
+        }
+        button.download {
+            /*background-color: #34c759;
+            margin-top: 20px;*/
+            margin:auto;
+            margin-top: 20px;
+            display: block;
+            height: 50px;
+            width: 200px;
+            color: white;
+            font: 17px/50px sans-serif,Helvetica;
+            text-decoration: none;
+            text-align: center;
+            text-transform: uppercase;
+            background: #0071e3; 
+            cursor:pointer;
+            border:none;
+        }
+        #trans-label {
+            display: block;
+            margin-top: 60px;
+        }
+
+        #transcription {
+            margin: auto;
+            display: block;
+            width: 60%;
+        }
+
+        #transcription-container {
+            margin:auto;
+            text-align: left;
+            display: flex;
+            justify-content: center;
+            width: 40%;
+            margin-top: 60px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Speech Annotation</h1>
+    <label id="upload-label" for="upload-folder">Upload Audio Folder</label>
+    <input type="file" id="upload-folder" webkitdirectory multiple style="display: none;">
+    <p id="file-count"></p>
+    <audio id="audio-player" controls></audio>
+    <div id="audio-info"></div>
+    <div id="audio-controls">
+        <button onclick="playPreviousAudio()">Previous Audio</button>
+        <button onclick="playAudio()">Play Audio</button>
+        <button id="next-audio-button" onclick="playNextAudio()">Next Audio</button>
+    </div>
+    <!-- <div id="transcriptionlabel"> Audio Transcription</div> -->
+    <label id="trans-label" for="transcription">Audio Transcription</label>
+    <textarea id="transcription"></textarea>
+
+    <button class="download" onclick="downloadCSV()">Download CSV</button>
+
+    <script>
+        let audioFiles = [];
+        let currentAudioIndex = 0;
+        let transcriptions = [];
+
+        document.getElementById('upload-folder').addEventListener('change', handleFiles);
+
+        function handleFiles(event) {
+            resetApplication();
+            audioFiles = Array.from(event.target.files);
+            document.getElementById('file-count').textContent = `${audioFiles.length} audio files uploaded.`;
+            if (audioFiles.length > 0) {
+                loadAudio(currentAudioIndex);
+            }
+        }
+
+        function resetApplication() {
+            audioFiles = [];
+            currentAudioIndex = 0;
+            transcriptions = [];
+            document.getElementById('file-count').textContent = '';
+            document.getElementById('audio-player').src = '';
+            document.getElementById('audio-info').textContent = '';
+            document.getElementById('transcription').value = '';
+            document.getElementById('next-audio-button').disabled = false;
+        }
+
+        function loadAudio(index) {
+            const audioPlayer = document.getElementById('audio-player');
+            const audioURL = URL.createObjectURL(audioFiles[index]);
+            audioPlayer.src = audioURL;
+            document.getElementById('audio-info').textContent = `Playing: ${audioFiles[index].name} (${index + 1} of ${audioFiles.length})`;
+            document.getElementById('transcription').value = transcriptions[index] || '';
+            document.getElementById('next-audio-button').disabled = (index >= audioFiles.length - 1);
+        }
+
+        function playPreviousAudio() {
+            saveTranscription();
+            if (currentAudioIndex > 0) {
+                currentAudioIndex--;
+                loadAudio(currentAudioIndex);
+            }
+        }
+
+        function playAudio() {
+            const audioPlayer = document.getElementById('audio-player');
+            audioPlayer.play();
+        }
+
+        function playNextAudio() {
+            saveTranscription();
+            if (currentAudioIndex < audioFiles.length - 1) {
+                currentAudioIndex++;
+                loadAudio(currentAudioIndex);
+                document.getElementById('transcription').value = '';
+            }
+        }
+
+        function saveTranscription() {
+            const transcription = document.getElementById('transcription').value;
+            transcriptions[currentAudioIndex] = transcription;
+        }
+
+        function downloadCSV() {
+            saveTranscription();
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "Audio File,Transcription\n";
+            audioFiles.forEach((file, index) => {
+                const transcription = transcriptions[index] || "";
+                csvContent += `${file.name},${transcription}\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "transcriptions.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
